@@ -2,9 +2,9 @@ import os.path, pickle, hashlib, logging, time, sys, traceback, random, unicoded
 # minimal Telegram bot library
 SENT = False
 
-# TODO: separate these into a configuration file, e.g yaml or json.
-T = "BOT_TOKEN_GOES_HERE" # obtain this from BotFather!
-UA = "USER_AGENT_HERE" # e.g. "py/markovbot"
+# TODO: separate these into a config file
+T = "tgtokenhere"
+UA = "useragenthere"
 custom_urlopen = lambda u,**kw:urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': UA}),**kw)
 class TelegramBot():
     class attribute_dict():
@@ -225,7 +225,7 @@ def generateMarkovOgg(msg, g):
     # g are the group settings
     # msg is the message data
     # call espeak and opusenc
-    os.system("rm markov.ogg 2>nul") # TODO: possible bug? this writes a file named "nul"    
+    os.system("rm markov.ogg 2>nul")    
     os.system("espeak -s" + str(g[2]) + " -v" + g[1] + " " + shlex.quote(limit(msg)) + " --stdout | opusenc - markov.ogg >nul 2>&1")
     
 import logging
@@ -475,9 +475,9 @@ try:
                                 text="[Usage: /markovmaxwords words, current max words is {0}]".format(str(g[4])),
                                 reply_to_message_id=replyto)
                         continue
-                    if v < 1 or v > 120:
+                    if v < 1 or v > 10000:
                         bot.sendMessage(chat_id=chat_id,
-                                text="[Limit for words is 1-120]",
+                                text="[Limit for words is 1-10000]",
                                 reply_to_message_id=replyto)
                         continue
                     g[4] = v
