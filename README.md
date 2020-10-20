@@ -10,7 +10,7 @@ By default, only sh-compatible shells and Unix-based systems are supported. espe
 [requests](https://pypi.python.org/pypi/requests)
 
 # Setup
-Setup instructions will be here _soon!_ Hopefully.
+Setup instructions will probably never arrive. Just being honest.
 
 # License
 [GNU LGPL v3](https://github.com/plusreed/Markov_Bot/blob/master/LICENSE)

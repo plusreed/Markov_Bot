@@ -1,129 +1,26 @@
-import os.path, pickle, hashlib, logging, time, sys, traceback, random, unicodedata, os, gc, json, urllib.error, urllib.parse, urllib.request, socket, requests, shlex
-# minimal Telegram bot library
-SENT = False
+# Library imports
+import gc
+import hashlib
+import logging
+import os
+import os.path
+import pickle
+import random
+import requests
+import shlex
+import sys
+from threading import Thread
+import time
+import traceback
+import unicodedata
+import urllib.error
+import urllib.parse
+import urllib.request
 
-# TODO: separate these into a config file
-T = "tgtokenhere"
-UA = "useragenthere"
-custom_urlopen = lambda u,**kw:urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': UA}),**kw)
-class TelegramBot():
-    class attribute_dict():
-        def __init__(self, data):
-            self.__data__ = data
-        def __getattr__(self, index):
-            if index == "__data__": return object.__getattr__(self, "__data__")
-            try:
-                return self.__getitem__(index)
-            except KeyError:
-                raise AttributeError
-        def __getitem__(self, index):
-            return self.__data__[index]
-        def __setattr__(self, index, value):
-            if index == "__data__": return object.__setattr__(self, "__data__", value)
-            self.__setitem__(index)
-        def __setitem__(self, index, value):
-            self.__data__[index] = value
-        def __delattr__(self, index, value):
-            if index == "__data__": return object.__delattr__(self, "__data__", value)
-            self.__delitem__(index)
-        def __delitem__(self, index, value):
-            del self.__data__[index]
-        def __repr__(self):
-            return repr(self.__data__)
-        def __iter__(self):
-            return iter(self.__data__)
-        def __len__(self):
-            return len(self.__data__)
-        def keys(self):
-            return self.__data__.keys()
-        def has(self, key):
-            return key in self.__data__.keys() and self.__data__[key] != None
-    def __init__(self, token):
-        self.token = token
-        self.retry = 0
-    def __getattr__(self, attr):
-        return self.func_wrapper(attr)
-    def get_url(self, fname, **kw):
-        url_par={}
-        for key in kw.keys():
-            if kw[key] != None:
-                url_par[key] = urllib.parse.quote_plus(TelegramBot.escape(kw[key]))
-        return (url_par,("https://api.telegram.org/bot" + self.token + "/" + (fname.replace("__UNSAFE","") if fname.endswith("__UNSAFE") else fname) + "?" +
-                "&".join(map(lambda x:x+"="+url_par[x],url_par.keys()))))
-    @staticmethod
-    def default_urlopen(u):
-        with custom_urlopen(u,timeout=90) as f:
-            raw = f.read().decode('utf-8')
-        return raw
-    def func_wrapper(self, fname):
-        def func(self, unsafe, _urlopen_hook=bot.default_urlopen, **kw):
-            url_par, url = self.get_url(fname, **kw)
-            RETRY = True
-            while RETRY:
-                try:
-                    raw = _urlopen_hook(url)
-                    RETRY = False
-                except urllib.error.HTTPError as e:
-                    if "bad request" in str(e).lower() and not unsafe:
-                        print(fname, url)
-                        print(json.dumps(url_par))
-                        print(e.read().decode('utf-8'))
-                        traceback.print_exc()
-                        return
-                    elif "forbidden" in str(e).lower() and not unsafe:
-                        print(fname, url)
-                        print(json.dumps(url_par))
-                        print(e.read().decode('utf-8'))
-                        traceback.print_exc()
-                        return
-                    else:
-                        raise e                    
-                except socket.timeout:
-                    if unsafe:
-                        raise ValueError("timeout")
-                    else:
-                        print("timeout!")
-                        time.sleep(1)
-                except BaseException as e:
-                    print(str(e))
-                    time.sleep(0.5)
-                    if "too many requests" in str(e).lower():
-                        self.retry += 1
-                        time.sleep(self.retry * 5)
-                    elif "unreachable" in str(e).lower() or "bad gateway" in str(e).lower() or "name or service not known" in str(e).lower() or  "network" in str(e).lower() or "handshake operation timed out" in str(e).lower():
-                        time.sleep(3)
-                    elif "bad request" in str(e).lower() and not unsafe:
-                        print(fname, url)
-                        print(json.dumps(url_par))
-                        traceback.print_exc()
-                        return
-                    elif "forbidden" in str(e).lower() and not unsafe:
-                        print(fname, url)
-                        print(json.dumps(url_par))
-                        traceback.print_exc()
-                        return
-                    else:
-                        raise e
-            self.retry = 0
-            return TelegramBot.attributify(json.loads(raw))
-        return lambda **kw:func(self,fname.endswith("__UNSAFE"),**kw)
-    @staticmethod
-    def escape(obj):
-        if type(obj) == str:
-            return obj
-        else:
-            return json.dumps(obj).encode('utf-8')
-    @staticmethod
-    def attributify(obj):
-        if type(obj)==list:
-            return list(map(TelegramBot.attributify,obj))
-        elif type(obj)==dict:
-            d = obj
-            for k in d.keys():
-                d[k] = TelegramBot.attributify(d[k])
-            return TelegramBot.attribute_dict(d)
-        else:
-            return obj
+import bot_class
+from config import TOKEN, USER_AGENT
+
+SENT = False
 
 groups = {}
           
@@ -161,7 +58,7 @@ def save(reason):
         save_group(key)
     print("SAVED")
     
-bot = TelegramBot(T)
+bot = bot_class.TelegramBot(TOKEN)
 MY_USERNAME = bot.getMe().result.username.lower()
 
 last_msg_id = 0
@@ -227,8 +124,6 @@ def generateMarkovOgg(msg, g):
     # call espeak and opusenc
     os.system("rm markov.ogg 2>nul")    
     os.system("espeak -s" + str(g[2]) + " -v" + g[1] + " " + shlex.quote(limit(msg)) + " --stdout | opusenc - markov.ogg >nul 2>&1")
-    
-import logging
 
 tried_to = 0
 saferes = True
@@ -238,12 +133,11 @@ try:
         time.sleep(600)
         while not saferes:
             time.sleep(0.5)
-            tried_to = 10000
         time.sleep(30)
         save("quitting - backup thread")
         os.execl(sys.executable, sys.executable, *sys.argv)      
     if Restart:
-        threading.Thread(target=autoreset, daemon=True).start()
+        Thread(target=autoreset, daemon=True).start()
     while True:
         tried_to += 1
         if tried_to >= 1000 and Restart:
@@ -577,7 +471,7 @@ try:
                             if len(msg) > 0: break
                         try:
                             generateMarkovOgg(msg, g)
-                            headers = {'User-Agent': UA}
+                            headers = {'User-Agent': USER_AGENT}
                             files = {"voice": open("markov.ogg","rb")}
                             bot.sendVoice(_urlopen_hook=lambda u:requests.post(u, headers=headers, files=files).text,
                                 chat_id=chat_id)
